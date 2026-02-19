@@ -1,0 +1,39 @@
+# Supabase 保活脚本：防止免费版项目因7天无活动被自动暂停
+name: Supabase Keep Alive
+
+# 触发规则：每3天 UTC 时间 0 点执行（对应北京时间 8 点）
+on:
+  schedule:
+    - cron: "0 0 */3 * *"
+  # 手动触发（可选，方便测试）
+  workflow_dispatch:
+
+# 执行任务
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      # 步骤1：发送简单请求到 Supabase，触发活动
+      - name: Ping Supabase to keep alive
+        run: |
+          # 已替换为正确的项目ID和anon key
+          SUPABASE_PROJECT_ID="moprjpbyazfaznpteeeg"
+          SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vcHJqcGJ5YXpmYXpucHRlZWVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5OTg3MTksImV4cCI6MjA4NTU3NDcxOX0.ulMePTwNKIduklkVhtC54pUfT8nUEMrK67q5uZKZAvs"
+
+          # 构造请求 URL
+          SUPABASE_URL="https://${SUPABASE_PROJECT_ID}.supabase.co"
+          
+          # 发送 POST 请求到 Supabase REST API（执行简单的空操作）
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${SUPABASE_URL}/rest/v1/" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"keep_alive": "ping"}')
+          
+          # 输出结果，方便排查问题
+          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 400 ]; then
+            echo "✅ Supabase 保活请求发送成功，状态码：$RESPONSE"
+          else
+            echo "❌ Supabase 保活请求失败，状态码：$RESPONSE"
+            exit 1
+          fi
